@@ -13,6 +13,7 @@ public abstract class HubClientBase : BackgroundService
 {
     private readonly IConfiguration configuration;
     private ILogger Logger { get; }
+    public event Action<HubConnectionState>? ConnectionStatusChanged;
 
     protected virtual TimeSpan ReconnectDelay => TimeSpan.FromSeconds(5);
 
@@ -38,7 +39,18 @@ public abstract class HubClientBase : BackgroundService
         Logger.LogDebug($"Keycloak Client Secret: {new string('*', clientSecret.Length)}");
 
         var builder = new HubConnectionBuilder()
-            .WithUrl(url, options => options.AccessTokenProvider = async () => await KeycloakServiceToken.RequestClientToken(authUrl, realm, clientId, clientSecret))
+            .WithUrl(url, options => options.AccessTokenProvider = async () =>
+            {
+                try
+                {
+                    return await KeycloakServiceToken.RequestClientToken(authUrl, realm, clientId, clientSecret);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Failed to get server hub access token");
+                    return null;
+                }
+            })
             .WithAutomaticReconnect(new InfiniteRetryPolicy());
 
         var connection = builder.Build();
@@ -51,16 +63,19 @@ public abstract class HubClientBase : BackgroundService
         connection.Reconnected += msg =>
         {
             Logger.LogInformation($"Hub connected: {msg}");
+            ConnectionStatusChanged?.Invoke(connection.State);
             return Task.CompletedTask;
         };
         connection.Closed += ex =>
         {
             Logger.LogWarning($"Connection closed: {ex?.Message}");
+            ConnectionStatusChanged?.Invoke(connection.State);
             return Task.CompletedTask;
         };
         connection.Reconnecting += ex =>
         {
             Logger.LogWarning($"Connection reconnecting: {ex?.Message}");
+            ConnectionStatusChanged?.Invoke(connection.State);
             return Task.CompletedTask;
         };
     }
@@ -80,12 +95,15 @@ public abstract class HubClientBase : BackgroundService
             {
                 try
                 {
+                    ConnectionStatusChanged?.Invoke(connection.State);
+
                     // Retry starting the initial connection to the hub
                     if (connection.State == HubConnectionState.Disconnected)
                     {
                         Logger.LogInformation("Connecting to hub...");
                         await connection.StartAsync(stoppingToken);
                         firstTime = true;
+                        ConnectionStatusChanged?.Invoke(connection.State);
                         Logger.LogInformation($"Connected to hub: {connection.ConnectionId}");
                     }
                 }
@@ -94,10 +112,16 @@ public abstract class HubClientBase : BackgroundService
                     Logger.LogError(ex, $"Error connecting to hub: {ex.Message}");
                 }
 
+                ConnectionStatusChanged?.Invoke(connection.State);
                 await Task.Delay(ReconnectDelay, stoppingToken);
             }
         }, stoppingToken);
 
         return connection;
+    }
+
+    protected void FireStatusUpdate(HubConnection hub)
+    {
+        ConnectionStatusChanged?.Invoke(hub.State);
     }
 }
