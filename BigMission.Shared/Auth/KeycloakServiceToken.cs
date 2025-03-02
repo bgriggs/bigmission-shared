@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.IdentityModel.Tokens.Jwt;
+using System.Text;
 using System.Text.Json;
 
 namespace BigMission.Shared.Auth;
@@ -23,13 +24,34 @@ public class KeycloakServiceToken
     public static async Task<string?> RequestClientToken(string authUrl, string realm, string clientName, string clientSecret)
     {
         var url = string.Format(URL, authUrl, realm);
-        var client = new HttpClient();
-        var request = new HttpRequestMessage(HttpMethod.Post, url);
+        using var client = new HttpClient();
+        using var request = new HttpRequestMessage(HttpMethod.Post, url);
         var content = string.Format(GRANTREQUEST, clientName, clientSecret);
         request.Content = new StringContent(content, Encoding.UTF8, CONTENTTYPE);
         var response = await client.SendAsync(request);
         var json = await response.Content.ReadAsStringAsync();
         var jsonObj = JsonSerializer.Deserialize<dynamic>(json);
         return jsonObj?.GetProperty("access_token").GetString();
+    }
+
+    public static long GetTokenExpirationTime(string token)
+    {
+        var handler = new JwtSecurityTokenHandler();
+        var jwtSecurityToken = handler.ReadJwtToken(token);
+        var tokenExp = jwtSecurityToken.Claims.First(claim => claim.Type.Equals("exp")).Value;
+        var ticks = long.Parse(tokenExp);
+        return ticks;
+    }
+
+    public static bool CheckTokenIsValid(string token)
+    {
+        var tokenTicks = GetTokenExpirationTime(token);
+        var tokenDate = DateTimeOffset.FromUnixTimeSeconds(tokenTicks).UtcDateTime;
+
+        var now = DateTime.Now.ToUniversalTime();
+
+        var valid = tokenDate >= now;
+
+        return valid;
     }
 }
