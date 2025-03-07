@@ -26,12 +26,12 @@ public class KeycloakServiceToken
         var url = string.Format(URL, authUrl, realm);
         using var client = new HttpClient();
         using var request = new HttpRequestMessage(HttpMethod.Post, url);
-        var content = string.Format(GRANTREQUEST, clientName, clientSecret);
+        string content = string.Format(GRANTREQUEST, clientName, clientSecret);
         request.Content = new StringContent(content, Encoding.UTF8, CONTENTTYPE);
         var response = await client.SendAsync(request);
         var json = await response.Content.ReadAsStringAsync();
-        var jsonObj = JsonSerializer.Deserialize<dynamic>(json);
-        return jsonObj?.GetProperty("access_token").GetString();
+        var jsonDoc = JsonDocument.Parse(json);
+        return jsonDoc.RootElement.GetProperty("access_token").ToString();
     }
 
     public static long GetTokenExpirationTime(string token)
