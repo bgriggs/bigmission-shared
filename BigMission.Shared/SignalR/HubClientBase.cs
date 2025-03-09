@@ -14,6 +14,8 @@ public abstract class HubClientBase : BackgroundService
     private readonly IConfiguration configuration;
     private ILogger Logger { get; }
     public event Action<HubConnectionState>? ConnectionStatusChanged;
+    private string clientId = string.Empty;
+    private string clientSecret = string.Empty;
 
     protected virtual TimeSpan ReconnectDelay => TimeSpan.FromSeconds(5);
 
@@ -28,8 +30,8 @@ public abstract class HubClientBase : BackgroundService
         var url = configuration["Hub:Url"] ?? throw new InvalidOperationException("Hub URL is not configured.");
         var authUrl = configuration["Keycloak:AuthServerUrl"] ?? throw new InvalidOperationException("Keycloak URL is not configured.");
         var realm = configuration["Keycloak:Realm"] ?? throw new InvalidOperationException("Keycloak realm is not configured.");
-        var clientId = configuration["Keycloak:ClientId"] ?? throw new InvalidOperationException("Keycloak client ID is not configured.");
-        var clientSecret = configuration["Keycloak:ClientSecret"] ?? throw new InvalidOperationException("Keycloak client secret is not configured.");
+        clientId = configuration["Keycloak:ClientId"] ?? throw new InvalidOperationException("Keycloak client ID is not configured.");
+        clientSecret = configuration["Keycloak:ClientSecret"] ?? throw new InvalidOperationException("Keycloak client secret is not configured.");
 
         // Log all parameters
         Logger.LogDebug($"Hub URL: {url}");
@@ -123,5 +125,11 @@ public abstract class HubClientBase : BackgroundService
     protected void FireStatusUpdate(HubConnection hub)
     {
         ConnectionStatusChanged?.Invoke(hub.State);
+    }
+
+    public void ReloadClientCredentials()
+    {
+        clientId = configuration["Keycloak:ClientId"] ?? throw new InvalidOperationException("Keycloak client ID is not configured.");
+        clientSecret = configuration["Keycloak:ClientSecret"] ?? throw new InvalidOperationException("Keycloak client secret is not configured.");
     }
 }
