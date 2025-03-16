@@ -85,8 +85,6 @@ public abstract class HubClientBase : BackgroundService
     /// <summary>
     /// Call to connect to the server. Once connected, the hub will automatically reconnect if the connection is lost.
     /// </summary>
-    /// <param name="connection"></param>
-    /// <param name="stoppingToken"></param>
     protected virtual HubConnection StartConnection(CancellationToken stoppingToken = default)
     {
         var connection = GetConnection();
