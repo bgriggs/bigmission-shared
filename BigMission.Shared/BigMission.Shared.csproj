@@ -11,11 +11,16 @@
 		<Platforms>AnyCPU;x64</Platforms>
 	</PropertyGroup>
 
-	<ItemGroup>
-		<PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.0" />
-		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.6.0" />
+	<ItemGroup Condition="Exists('..\..\Directory.Build.props') == 'false'">
+		<PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.4" />
+		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.4" />
+		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.8.0" />
 		<PackageReference Include="RestSharp" Version="112.1.0" />
 	</ItemGroup>
-
+	<ItemGroup Condition="Exists('..\..\Directory.Build.props') == 'true'">
+		<PackageReference Include="Microsoft.AspNetCore.SignalR.Client"/>
+		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions"/>
+		<PackageReference Include="System.IdentityModel.Tokens.Jwt"/>
+		<PackageReference Include="RestSharp"/>
+	</ItemGroup>
 </Project>
