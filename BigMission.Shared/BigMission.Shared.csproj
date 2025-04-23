@@ -8,7 +8,7 @@
 		<Company>Big Mission Motorsports, LLC</Company>
 		<Product>Red Mist</Product>
 		<Copyright>2024-2025</Copyright>
-		<Platforms>AnyCPU;x64</Platforms>
+		<Platforms>AnyCPU;x64;x86</Platforms>
 	</PropertyGroup>
 
 	<ItemGroup>
