@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
 	<PropertyGroup>
 		<TargetFramework>net9.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
@@ -10,10 +9,6 @@
 		<Copyright>2024-2025</Copyright>
 		<Platforms>AnyCPU;x64</Platforms>
 	</PropertyGroup>
-
-	<ItemGroup>
-		<FrameworkReference Include="Microsoft.AspNetCore.App" />
-	</ItemGroup>
 
 	<ItemGroup Condition="Exists('..\..\Directory.Build.props') == 'false'">
 		<PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.4" />
