@@ -54,8 +54,7 @@ public abstract class HubClientBase : BackgroundService
                     return null;
                 }
             })
-            .WithAutomaticReconnect(new InfiniteRetryPolicy())
-            .AddMessagePackProtocol();
+            .WithAutomaticReconnect(new InfiniteRetryPolicy());
 
         var connection = builder.Build();
         InitializeStateLogging(connection);
