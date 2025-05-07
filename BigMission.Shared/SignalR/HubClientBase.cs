@@ -1,6 +1,7 @@
 ﻿using BigMission.Shared.Auth;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -53,7 +54,8 @@ public abstract class HubClientBase : BackgroundService
                     return null;
                 }
             })
-            .WithAutomaticReconnect(new InfiniteRetryPolicy());
+            .WithAutomaticReconnect(new InfiniteRetryPolicy())
+            .AddMessagePackProtocol();
 
         var connection = builder.Build();
         InitializeStateLogging(connection);

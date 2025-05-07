@@ -15,11 +15,14 @@
 		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.4" />
 		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.8.0" />
 		<PackageReference Include="RestSharp" Version="112.1.0" />
+		<PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" Version="9.0.4"/>
 	</ItemGroup>
 	<ItemGroup Condition="Exists('..\..\Directory.Build.props') == 'true'">
 		<PackageReference Include="Microsoft.AspNetCore.SignalR.Client"/>
 		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions"/>
 		<PackageReference Include="System.IdentityModel.Tokens.Jwt"/>
 		<PackageReference Include="RestSharp"/>
+		<PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" />
 	</ItemGroup>
+	
 </Project>
