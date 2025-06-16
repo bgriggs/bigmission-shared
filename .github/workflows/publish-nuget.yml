@@ -1,0 +1,29 @@
+name: Publish to Nuget
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  packages: write # permission for the github token
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+      - name: Restore dependencies
+        run: dotnet restore
+      - name: Build
+        run: dotnet build BigMission.Shared/BigMission.Shared.csproj --no-restore --configuration Release
+      - name: Create the package
+        run: dotnet pack BigMission.Shared/BigMission.Shared.csproj --configuration Release
+      - name: Publish the package to Nuget
+        run: dotnet nuget push BigMission.Shared\bin\Release\*.nupkg -s https://api.nuget.org/v3/index.json --api-key ${{secrets.NUGET_TOKEN}} --skip-duplicate
