@@ -1,7 +1,6 @@
 ﻿using BigMission.Shared.Auth;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -31,8 +30,8 @@ public abstract class HubClientBase : BackgroundService
         var url = configuration["Hub:Url"] ?? throw new InvalidOperationException("Hub URL is not configured.");
         var authUrl = configuration["Keycloak:AuthServerUrl"] ?? throw new InvalidOperationException("Keycloak URL is not configured.");
         var realm = configuration["Keycloak:Realm"] ?? throw new InvalidOperationException("Keycloak realm is not configured.");
-        clientId = configuration["Keycloak:ClientId"] ?? throw new InvalidOperationException("Keycloak client ID is not configured.");
-        clientSecret = configuration["Keycloak:ClientSecret"] ?? throw new InvalidOperationException("Keycloak client secret is not configured.");
+        clientId = GetClientId();
+        clientSecret = GetClientSecret();
 
         // Log all parameters
         Logger.LogDebug($"Hub URL: {url}");
@@ -59,6 +58,16 @@ public abstract class HubClientBase : BackgroundService
         var connection = builder.Build();
         InitializeStateLogging(connection);
         return connection;
+    }
+
+    protected virtual string GetClientId()
+    {
+        return configuration["Keycloak:ClientId"] ?? throw new InvalidOperationException("Keycloak client ID is not configured.");
+    }
+
+    protected virtual string GetClientSecret()
+    {
+        return configuration["Keycloak:ClientSecret"] ?? throw new InvalidOperationException("Keycloak client secret is not configured.");
     }
 
     protected virtual void InitializeStateLogging(HubConnection connection)
@@ -126,9 +135,9 @@ public abstract class HubClientBase : BackgroundService
         ConnectionStatusChanged?.Invoke(hub.State);
     }
 
-    public void ReloadClientCredentials()
+    public virtual void ReloadClientCredentials()
     {
-        clientId = configuration["Keycloak:ClientId"] ?? throw new InvalidOperationException("Keycloak client ID is not configured.");
-        clientSecret = configuration["Keycloak:ClientSecret"] ?? throw new InvalidOperationException("Keycloak client secret is not configured.");
+        clientId = GetClientId();
+        clientSecret = GetClientSecret();
     }
 }

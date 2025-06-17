@@ -9,7 +9,7 @@
 		<Description>Reusable helper classes.</Description>
 		<Copyright>2024-2025</Copyright>
 		<Platforms>AnyCPU;x64;x86</Platforms>
-		<Version>1.0.0.3</Version>
+		<Version>1.0.1.0</Version>
 	</PropertyGroup>
 
 	<ItemGroup Condition="Exists('..\..\Directory.Build.props') == 'false'">
