@@ -9,20 +9,14 @@
 		<Description>Reusable helper classes.</Description>
 		<Copyright>2024-2025</Copyright>
 		<Platforms>AnyCPU;x64;x86</Platforms>
-		<Version>1.0.1.0</Version>
+		<Version>1.0.2</Version>
 	</PropertyGroup>
 
-	<ItemGroup Condition="Exists('..\..\Directory.Build.props') == 'false'">
+	<ItemGroup>
 		<PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.6" />
 		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.6" />
-		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.12.0" />
+		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.12.1" />
 		<PackageReference Include="RestSharp" Version="112.1.0" />
-	</ItemGroup>
-	<ItemGroup Condition="Exists('..\..\Directory.Build.props') == 'true'">
-		<PackageReference Include="Microsoft.AspNetCore.SignalR.Client" />
-		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
-		<PackageReference Include="System.IdentityModel.Tokens.Jwt" />
-		<PackageReference Include="RestSharp" />
 	</ItemGroup>
 	
 </Project>
