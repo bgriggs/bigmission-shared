@@ -9,13 +9,13 @@
 		<Description>Reusable helper classes.</Description>
 		<Copyright>2024-2025</Copyright>
 		<Platforms>AnyCPU;x64;x86</Platforms>
-		<Version>1.0.2</Version>
+		<Version>1.0.3</Version>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.6" />
-		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.6" />
-		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.12.1" />
+		<PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.8" />
+		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.8" />
+		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.14.0" />
 		<PackageReference Include="RestSharp" Version="112.1.0" />
 	</ItemGroup>
 	
