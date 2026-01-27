@@ -10,7 +10,7 @@
 		<Copyright>2024-2025</Copyright>
 		<Platforms>AnyCPU;x64;x86</Platforms>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
-		<Version>1.0.4</Version>
+		<Version>1.0.5</Version>
 	</PropertyGroup>
 
 	<ItemGroup>

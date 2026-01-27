@@ -17,19 +17,20 @@ namespace BigMission.Shared.SignalR;
 public abstract class HubClientBase : BackgroundService
 {
     private readonly IConfiguration configuration;
-    
+
     /// <summary>
     /// Gets the logger instance for this hub client.
     /// </summary>
     private ILogger Logger { get; }
-    
+
     /// <summary>
     /// Occurs when the hub connection state changes (e.g., connected, disconnected, reconnecting).
     /// </summary>
     public event Action<HubConnectionState>? ConnectionStatusChanged;
-    
+
     private string clientId = string.Empty;
     private string clientSecret = string.Empty;
+    private CancellationTokenSource? connectionTaskCancellation;
 
     /// <summary>
     /// Gets the delay between reconnection attempts when the initial connection fails.
@@ -161,11 +162,18 @@ public abstract class HubClientBase : BackgroundService
     /// </remarks>
     protected virtual HubConnection StartConnection(CancellationToken stoppingToken = default)
     {
+        // Cancel any previous connection attempt
+        connectionTaskCancellation?.Cancel();
+        connectionTaskCancellation?.Dispose();
+        connectionTaskCancellation = new CancellationTokenSource();
+
         var connection = GetConnection();
+        var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken, connectionTaskCancellation.Token);
+
         _ = Task.Run(async () =>
         {
             bool firstTime = false;
-            while (!stoppingToken.IsCancellationRequested && !firstTime)
+            while (!linkedCts.Token.IsCancellationRequested && !firstTime)
             {
                 try
                 {
@@ -175,21 +183,39 @@ public abstract class HubClientBase : BackgroundService
                     if (connection.State == HubConnectionState.Disconnected)
                     {
                         Logger.LogInformation("Connecting to hub...");
-                        await connection.StartAsync(stoppingToken);
+                        await connection.StartAsync(linkedCts.Token);
                         firstTime = true;
                         ConnectionStatusChanged?.Invoke(connection.State);
                         Logger.LogInformation($"Connected to hub: {connection.ConnectionId}");
                     }
+                }
+                catch (OperationCanceledException)
+                {
+                    Logger.LogDebug("Connection attempt cancelled");
+                    break;
                 }
                 catch (Exception ex)
                 {
                     Logger.LogError(ex, $"Error connecting to hub: {ex.Message}");
                 }
 
-                ConnectionStatusChanged?.Invoke(connection.State);
-                await Task.Delay(ReconnectDelay, stoppingToken);
+                if (!linkedCts.Token.IsCancellationRequested)
+                {
+                    ConnectionStatusChanged?.Invoke(connection.State);
+                    try
+                    {
+                        await Task.Delay(ReconnectDelay, linkedCts.Token);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        Logger.LogDebug("Connection retry delay cancelled");
+                        break;
+                    }
+                }
             }
-        }, stoppingToken);
+
+            linkedCts.Dispose();
+        }, linkedCts.Token);
 
         return connection;
     }
@@ -219,5 +245,16 @@ public abstract class HubClientBase : BackgroundService
     {
         clientId = GetClientId();
         clientSecret = GetClientSecret();
+    }
+
+    /// <summary>
+    /// Disposes resources used by this hub client, including cancelling any pending connection attempts.
+    /// </summary>
+    public override void Dispose()
+    {
+        connectionTaskCancellation?.Cancel();
+        connectionTaskCancellation?.Dispose();
+        base.Dispose();
+        GC.SuppressFinalize(this);
     }
 }
