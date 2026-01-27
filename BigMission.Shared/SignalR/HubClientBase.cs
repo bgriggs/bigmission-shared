@@ -12,7 +12,6 @@ namespace BigMission.Shared.SignalR;
 /// <remarks>
 /// This abstract class extends <see cref="BackgroundService"/> to provide a foundation for building SignalR hub clients
 /// with automatic connection management, Keycloak-based authentication, and configurable reconnection logic.
-/// Derived classes should override <see cref="ExecuteAsync"/> to implement hub-specific functionality.
 /// </remarks>
 public abstract class HubClientBase : BackgroundService
 {
