@@ -7,7 +7,7 @@
 		<Company>Big Mission Motorsports, LLC</Company>
 		<Product>Red Mist</Product>
 		<Description>Reusable helper classes.</Description>
-		<Copyright>2024-2025</Copyright>
+		<Copyright>2024-2026 Big Mission Motorsports</Copyright>
 		<Platforms>AnyCPU;x64;x86</Platforms>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<Version>1.0.5</Version>
