@@ -1,4 +1,5 @@
 ﻿using BigMission.Shared.Auth;
+using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -76,17 +77,22 @@ public abstract class HubClientBase : BackgroundService
         Logger.LogDebug($"Keycloak Client Secret: {new string('*', clientSecret.Length)}");
 
         var builder = new HubConnectionBuilder()
-            .WithUrl(url, options => options.AccessTokenProvider = async () =>
+            .WithUrl(url, options =>
             {
-                try
+                options.SkipNegotiation = true;
+                options.Transports = HttpTransportType.WebSockets;
+                options.AccessTokenProvider = async () =>
                 {
-                    return await KeycloakServiceToken.RequestClientToken(authUrl, realm, clientId, clientSecret);
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogError(ex, "Failed to get server hub access token");
-                    return null;
-                }
+                    try
+                    {
+                        return await KeycloakServiceToken.RequestClientToken(authUrl, realm, clientId, clientSecret);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogError(ex, "Failed to get server hub access token");
+                        return null;
+                    }
+                };
             })
             .WithAutomaticReconnect(new InfiniteRetryPolicy());
 
