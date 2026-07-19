@@ -1,12 +1,9 @@
-﻿using Microsoft.AspNetCore.SignalR.Client;
+﻿using MessagePack;
+using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
+using System.Runtime.Intrinsics.Arm;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace BigMission.Shared.SignalR;
 
@@ -36,7 +33,12 @@ public static class HubConnectionBuilderExtensions
         }
         else
         {
-            builder.AddMessagePackProtocol();
+            builder.AddMessagePackProtocol(options =>
+            {
+                options.SerializerOptions = MessagePackSerializerOptions.Standard;
+                    // CVE-2020-5234
+                    //.WithSecurity(MessagePackSecurity.UntrustedData);
+            });
         }
 
         return builder;
