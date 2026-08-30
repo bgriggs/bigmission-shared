@@ -39,6 +39,22 @@ public abstract class HubClientBase : BackgroundService
     protected virtual TimeSpan ReconnectDelay => TimeSpan.FromSeconds(5);
 
     /// <summary>
+    /// Gets how many consecutive failed connect attempts are tolerated before the failure is
+    /// reported as an error rather than a warning.
+    /// </summary>
+    /// <value>
+    /// The default is 3. Attempts are separated by <see cref="ReconnectDelay"/>, so the error
+    /// follows roughly two delays of continuous failure. Values below one are treated as one. The
+    /// count belongs to the client rather than to one connection attempt and is cleared by a
+    /// successful connect, so a caller that restarts the connection faster than the threshold
+    /// cannot hold the failure permanently below it.
+    /// </value>
+    protected virtual int ConnectErrorThreshold => 3;
+
+    private int consecutiveConnectFailures;
+    private bool connectErrorReported;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="HubClientBase"/> class.
     /// </summary>
     /// <param name="loggerFactory">The logger factory used to create the logger for this hub client.</param>
@@ -89,7 +105,10 @@ public abstract class HubClientBase : BackgroundService
                     }
                     catch (Exception ex)
                     {
-                        Logger.LogError(ex, "Failed to get server hub access token");
+                        // Warning rather than error: returning null lets the attempt proceed
+                        // and fail, and it is the connect failure that decides whether the
+                        // condition has lasted long enough to be worth reporting.
+                        Logger.LogWarning(ex, "Failed to get server hub access token");
                         return null;
                     }
                 };
@@ -182,7 +201,7 @@ public abstract class HubClientBase : BackgroundService
             {
                 try
                 {
-                    ConnectionStatusChanged?.Invoke(connection.State);
+                    RaiseConnectionStatusChanged(connection);
 
                     // Retry starting the initial connection to the hub
                     if (connection.State == HubConnectionState.Disconnected)
@@ -190,23 +209,29 @@ public abstract class HubClientBase : BackgroundService
                         Logger.LogInformation("Connecting to hub...");
                         await connection.StartAsync(linkedCts.Token);
                         firstTime = true;
-                        ConnectionStatusChanged?.Invoke(connection.State);
+                        Interlocked.Exchange(ref consecutiveConnectFailures, 0);
+                        connectErrorReported = false;
+                        RaiseConnectionStatusChanged(connection);
                         Logger.LogInformation($"Connected to hub: {connection.ConnectionId}");
                     }
                 }
-                catch (OperationCanceledException)
+                catch (OperationCanceledException) when (linkedCts.Token.IsCancellationRequested)
                 {
                     Logger.LogDebug("Connection attempt cancelled");
                     break;
                 }
                 catch (Exception ex)
                 {
-                    Logger.LogError(ex, $"Error connecting to hub: {ex.Message}");
+                    // A cancellation that did not come from the token is a failure like any other -
+                    // an HTTP timeout during negotiate arrives as TaskCanceledException, and
+                    // treating that as a cancellation used to break the loop for good, leaving the
+                    // client silently never reconnecting.
+                    LogConnectFailure(ex);
                 }
 
                 if (!linkedCts.Token.IsCancellationRequested)
                 {
-                    ConnectionStatusChanged?.Invoke(connection.State);
+                    RaiseConnectionStatusChanged(connection);
                     try
                     {
                         await Task.Delay(ReconnectDelay, linkedCts.Token);
@@ -223,6 +248,52 @@ public abstract class HubClientBase : BackgroundService
         }, linkedCts.Token);
 
         return connection;
+    }
+
+    /// <summary>
+    /// Raises <see cref="ConnectionStatusChanged"/>, keeping a subscriber's fault out of the
+    /// connect-failure accounting it would otherwise be counted as.
+    /// </summary>
+    private void RaiseConnectionStatusChanged(HubConnection connection)
+    {
+        try
+        {
+            ConnectionStatusChanged?.Invoke(connection.State);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "A connection status subscriber threw");
+        }
+    }
+
+    /// <summary>
+    /// Logs a failed connect attempt, raising it to an error once the failure has persisted.
+    /// </summary>
+    /// <remarks>
+    /// The retry loop runs until it connects, so the early attempts are ordinary: a client can
+    /// change network, wake from sleep, or outlast a server restart. Logging every attempt at error
+    /// level turned a brief outage into a stream of identical reports, one per retry. The error is
+    /// raised once, when the failure has lasted long enough to be worth acting on, and the attempts
+    /// on either side of it are quieter so a long outage cannot crowd out unrelated diagnostics.
+    /// </remarks>
+    private void LogConnectFailure(Exception ex)
+    {
+        var attempt = Interlocked.Increment(ref consecutiveConnectFailures);
+        var threshold = Math.Max(1, ConnectErrorThreshold);
+
+        if (attempt < threshold)
+        {
+            Logger.LogWarning(ex, "Error connecting to hub on attempt {Attempt}", attempt);
+        }
+        else if (!connectErrorReported)
+        {
+            connectErrorReported = true;
+            Logger.LogError(ex, "Error connecting to hub, still failing after {Attempt} attempts", attempt);
+        }
+        else
+        {
+            Logger.LogInformation(ex, "Error connecting to hub on attempt {Attempt}", attempt);
+        }
     }
 
     /// <summary>
