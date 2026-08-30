@@ -32,7 +32,7 @@ public class KeycloakServiceAuthenticator(string token, string authUrl, string r
     {
         if (string.IsNullOrEmpty(Token) || !IsTokenValid())
         {
-            Token = await KeycloakServiceToken.RequestClientToken(authUrl, realm, clientId, clientSecret) ?? string.Empty;
+            Token = await KeycloakServiceToken.RequestClientToken(authUrl, realm, clientId, clientSecret);
         }
         return new HeaderParameter(KnownHeaders.Authorization, $"Bearer {Token}");
     }
