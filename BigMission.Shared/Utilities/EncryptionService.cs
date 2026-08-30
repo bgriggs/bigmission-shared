@@ -13,6 +13,16 @@ namespace BigMission.Shared.Utilities;
 /// </remarks>
 public class EncryptionService
 {
+    /// <summary>
+    /// UTF-8 that refuses to encode text it cannot represent, rather than substituting U+FFFD.
+    /// </summary>
+    /// <remarks>
+    /// The default encoder replaces an unpaired surrogate with the replacement character, which is
+    /// three bytes and passes the length check below. Two different key strings would then produce
+    /// identical key material, and one would silently decrypt the other's data.
+    /// </remarks>
+    private static readonly Encoding StrictUtf8 = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+
     private readonly byte[] key;
     private readonly byte[] iv;
 
@@ -21,8 +31,10 @@ public class EncryptionService
     /// </summary>
     /// <param name="key">The encryption key as a UTF-8 string. Must be exactly 32 bytes (256 bits) long.</param>
     /// <param name="iv">The initialization vector as a UTF-8 string. Must be exactly 16 bytes (128 bits) long.</param>
+    /// <exception cref="ArgumentNullException">Thrown when the key or the IV is null.</exception>
     /// <exception cref="ArgumentException">
-    /// Thrown when the key is not 32 bytes long or the IV is not 16 bytes long.
+    /// Thrown when the key is not 32 bytes long or the IV is not 16 bytes long, once encoded as UTF-8,
+    /// or when either contains text UTF-8 cannot represent, such as an unpaired surrogate.
     /// </exception>
     /// <remarks>
     /// The key and IV are converted from UTF-8 strings to byte arrays. Ensure that your key and IV strings
@@ -31,11 +43,22 @@ public class EncryptionService
     /// </remarks>
     public EncryptionService(string key, string iv)
     {
-        if (key.Length != 32 || iv.Length != 16)
-            throw new ArgumentException("Key must be 32 bytes and IV must be 16 bytes long.");
+        ArgumentNullException.ThrowIfNull(key);
+        ArgumentNullException.ThrowIfNull(iv);
 
-        this.key = Encoding.UTF8.GetBytes(key);
-        this.iv = Encoding.UTF8.GetBytes(iv);
+        // Encoded first, then measured. AES sizes its key and IV in bytes, so checking the character
+        // count instead let anything outside ASCII through the guard - a 32-character key with one
+        // accented letter is 33 bytes - and turned an argument error at construction into a
+        // CryptographicException on first use, somewhere the key was no longer in view.
+        this.key = StrictUtf8.GetBytes(key);
+        this.iv = StrictUtf8.GetBytes(iv);
+
+        if (this.key.Length != 32 || this.iv.Length != 16)
+        {
+            throw new ArgumentException(
+                $"Key must be 32 bytes and IV must be 16 bytes long. Encoded as UTF-8, the key is " +
+                $"{this.key.Length} bytes and the IV is {this.iv.Length} bytes.");
+        }
     }
 
 
